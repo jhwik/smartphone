@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>스마트폰 중독 테스트 게임</title>
+<style>
+  :root{
+    --primary:#87CEEB;
+    --bg:#fff8f0;
+    --text:#1b1b1b;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Pretendard','맑은 고딕','Malgun Gothic',system-ui,Apple SD Gothic Neo,Segoe UI,Arial,sans-serif;
+    padding:16px;
+  }
+  .wrap{
+    width:100%;
+    max-width:560px;
+    background:var(--card);
+    border-radius:20px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+    padding:20px;
+    text-align:center;
+  }
+  h1{
+    font-size:22px;
+    margin:0 0 12px;
+  }
+  .desc{
+    font-size:15px;
+    line-height:1.5;
+    margin-bottom:16px;
+  }
+  .badge{
+    background:var(--primary);
+    color:#000;
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:14px;
+    box-shadow:0 3px 10px rgba(135,206,235,.45);
+    display:inline-block;
+    margin-bottom:12px;
+  }
+  .prompt{
+    font-size:18px;
+    line-height:1.5;
+    margin-bottom:8px;
+    word-break:keep-all;
+  }
+  .hint{
+    font-size:14px;
+    color:#555;
+    margin-bottom:14px;
+  }
+  .field{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  input[type="text"]{
+    flex:1;
+    padding:14px 12px;
+    font-size:18px;
+    border-radius:12px;
+    border:1px solid #ddd;
+  }
+  button{
+    padding:14px 16px;
+    border:none;
+    border-radius:12px;
+    background:var(--primary);
+    color:#000;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(135,206,235,.55);
+    transition:transform .12s ease;
+  }
+  button:active{ transform:scale(.98) }
+  .log{
+    min-height:28px;
+    font-size:16px;
+    font-weight:700;
+  }
+  .ok{ color:#0a7b34 }
+  .warn{ color:#c25b00 }
+  .err{ color:#b00020 }
+  @media (max-width: 480px){
+    h1{ font-size:20px }
+    .prompt{ font-size:17px }
+    input[type="text"]{ font-size:17px; padding:13px 12px }
+    button{ padding:13px 14px }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div id="introScreen">
+    <h1>스마트폰 중독 테스트</h1>
+    <div class="desc">
+      '나 혹시 스마트폰 중독 아니야?'라고 생각해 본 적 있나요?<br>
+      휘경쌤과 함께 확인해 봅시다.<br>
+      주어진 문장을 외운 후 <b>눈을 감고</b> 입력해 보세요!
+    </div>
+    <button id="startGameBtn">시작하기</button>
+  </div>
+
+  <div id="gameScreen" style="display:none;">
+    <div class="badge" id="stageBadge">1단계</div>
+    <div id="prompt" class="prompt"></div>
+    <div class="hint">눈을 감고 입력해 보세요!</div>
+
+    <div class="field">
+      <input id="answer" type="text" autocomplete="off" placeholder="여기에 입력…" />
+      <button id="submitBtn">제출</button>
+    </div>
+    <div id="log" class="log"></div>
+  </div>
+</main>
+
+<script>
+(() => {
+  const STAGES = [
+    { text: "안녕하세요",
+      onWrong: "바람직하군요",
+    },
+    { text: "삐까삐까삐까츄",
+      onWrong: "중독은 아닌 듯??",
+    },
+    { text: "꼴사납게 싸웠다면 쫑났어",
+      onWrong: "이건 틀려서 다행이야...",
+      onRightAll: "이걸 맞히다니......"
+    },
+  ];
+
+  const introEl   = document.getElementById("introScreen");
+  const gameEl    = document.getElementById("gameScreen");
+  const startBtn  = document.getElementById("startGameBtn");
+  const stageBadge= document.getElementById("stageBadge");
+  const promptEl  = document.getElementById("prompt");
+  const answerEl  = document.getElementById("answer");
+  const submitEl  = document.getElementById("submitBtn");
+  const logEl     = document.getElementById("log");
+
+  let stageIdx = 0;
+
+  const nfc = s => (s||"").normalize("NFC").trim();
+
+  function setLog(msg, type="") {
+    logEl.className = "log " + type;
+    logEl.textContent = msg;
+  }
+
+  function startStage() {
+    const stage = STAGES[stageIdx];
+    stageBadge.textContent = (stageIdx+1) + "단계";
+    promptEl.textContent = stage.text;
+    answerEl.value = "";
+    setLog("");
+    answerEl.focus();
+  }
+
+  function checkAnswer() {
+    const target = nfc(STAGES[stageIdx].text);
+    const user = nfc(answerEl.value);
+    const correct = (user === target);
+
+    if (stageIdx === 0) { // 1단계
+      if (correct) {
+        alert("1단계 통과! 다음 단계로!");
+        stageIdx++;
+        startStage();
+      } else {
+        alert(STAGES[0].onWrong);
+        resetGame();
+      }
+    } else if (stageIdx === 1) { // 2단계
+      if (correct) {
+        alert("2단계 통과! 다음 단계로!");
+        stageIdx++;
+        startStage();
+      } else {
+        alert(STAGES[1].onWrong);
+        resetGame();
+      }
+    } else if (stageIdx === 2) { // 3단계
+      if (correct) {
+        alert(STAGES[2].onRightAll);
+      } else {
+        alert(STAGES[2].onWrong);
+      }
+      resetGame();
+    }
+  }
+
+  function resetGame() {
+    stageIdx = 0;
+    introEl.style.display = "block";
+    gameEl.style.display = "none";
+  }
+
+  startBtn.addEventListener("click", () => {
+    introEl.style.display = "none";
+    gameEl.style.display = "block";
+    stageIdx = 0;
+    startStage();
+  });
+
+  submitEl.addEventListener("click", checkAnswer);
+  answerEl.addEventListener("keydown", e => {
+    if (e.key === "Enter") checkAnswer();
+  });
+})();
+</script>
+</body>
+</html>
+
